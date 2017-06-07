@@ -19,12 +19,29 @@
 
 using namespace std;
 
+default_random_engine gen;
+
 void ParticleFilter::init(double x, double y, double theta, double std[]) {
 	// TODO: Set the number of particles. Initialize all particles to first position (based on estimates of 
 	//   x, y, theta and their uncertainties from GPS) and all weights to 1. 
 	// Add random Gaussian noise to each particle.
 	// NOTE: Consult particle_filter.h for more information about this method (and others in this file).
-
+	num_particles = 100;
+	normal_distribution<double> dist_x(x, std[0]);
+	normal_distribution<double> dist_y(y, std[1]);
+	normal_distribution<double> dist_theta(theta, std[2]);
+	for(int i=0; i<num_particles; i++){
+		//Create particle
+		Particle p;
+		p.id = i;
+		p.x = dist_x(gen);
+		p.y = dist_y(gen);
+		p.theta = dist_theta(gen);
+		p.weight = 1.0;
+		//Append to particles
+		particles.push_back(p);
+	}
+	is_initialized = true;
 }
 
 void ParticleFilter::prediction(double delta_t, double std_pos[], double velocity, double yaw_rate) {
@@ -32,6 +49,24 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
 	// NOTE: When adding noise you may find std::normal_distribution and std::default_random_engine useful.
 	//  http://en.cppreference.com/w/cpp/numeric/random/normal_distribution
 	//  http://www.cplusplus.com/reference/random/default_random_engine/
+	normal_distribution<double> noise_x(0, std_pos[0]);
+	normal_distribution<double> noise_y(0, std_pos[1]);
+	normal_distribution<double> noise_theta(0, std_pos[2]);
+	for(int i = 0; i< num_particles; i++){
+
+		if(fabs(yaw_rate)>0.001){
+			float VelOverYaw = velocity/ yaw_rate;
+			float arc = theta*delta_t;
+			particles[i].x += VelOverYaw*(sin(theta+arc)-sin(theta));
+			particles[i].y += VelOverYaw*(cos(theta)+cos(theta+arc));
+			particles[i].theta +=
+
+		}
+		else{
+			//ADD HERE WHEN YAW RATE IS 0
+		}
+		//NOMRALIZE THETA AFTER PREDICTION
+	}
 
 }
 
