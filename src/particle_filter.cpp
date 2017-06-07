@@ -56,16 +56,21 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
 
 		if(fabs(yaw_rate)>0.001){
 			float VelOverYaw = velocity/ yaw_rate;
-			float arc = theta*delta_t;
-			particles[i].x += VelOverYaw*(sin(theta+arc)-sin(theta));
-			particles[i].y += VelOverYaw*(cos(theta)+cos(theta+arc));
-			particles[i].theta +=
+			float arc = yaw_rate*delta_t;
+			particles[i].x += VelOverYaw*(sin(particles[i].theta +arc)-sin(particles[i].theta));
+			particles[i].y += VelOverYaw*(cos(particles[i].theta)+cos(particles[i].theta + arc));
+			particles[i].theta += arc;
+			//NOMRALIZE THETA
 
 		}
 		else{
-			//ADD HERE WHEN YAW RATE IS 0
+			particles[i].x = velocity*delta_t*cos(particles[i].theta);
+			particles[i].y = velocity*delta_t*sin(particles[i].theta);
 		}
-		//NOMRALIZE THETA AFTER PREDICTION
+		//Add noise
+		particles[i].x += noise_x(gen);
+		particles[i].y += noise_y(gen);
+		particles[i].theta +=noise_theta(gen);
 	}
 
 }
@@ -75,6 +80,21 @@ void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::ve
 	//   observed measurement to this particular landmark.
 	// NOTE: this method will NOT be called by the grading code. But you will probably find it useful to 
 	//   implement this method and use it as a helper during the updateWeights phase.
+	for (int i = 0; i<observations.size() i++){
+		//Current observation
+		LandmarkObs obs = observations[i];
+		//Min distance initialized as maximum (~100k)
+		float min_distance = 99999;
+		//Id of best observation (-1 is none)
+		int map_id = -1;
+		//Run through
+		for (int j=0; j< predicted.size(); j++){
+			LandmarkObs pred = predicted[j];
+			//Current distance
+			double cur_dist = dist()
+		}
+	}
+	
 
 }
 
@@ -90,6 +110,32 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 	//   and the following is a good resource for the actual equation to implement (look at equation 
 	//   3.33
 	//   http://planning.cs.uiuc.edu/node99.html
+	//For each particle
+	for (int i =0; i< num_particles; i++){
+		double p_x = particles[i].x;
+		double p_y = particles[i].y;
+		double p_theta = particles[i].theta;
+		//This will hold predicted landmark locations
+		vector<LandmarkObs> predictions;
+		//For each landmark
+		for(int j=0; j< map_landmarks.landmark_list.size(); j++){
+			//get position and ID
+			float l_x = map.landmarks.landmark_list[j].x_f;
+			float l_y = map.landmarks.landmark_list[j].x_f;
+			float l_id = map.landmarks.landmark_list[j].id_i;
+			//Discriminate for only within sensor range
+			if (fabs(l_x-p_x)<=sensor_range && fabs(l_y - p_y)<= sensor_range){
+				//Add to predictions
+				predictions.push_back(LandmarkObs{l_id,l_x,l_y});
+			}
+		}
+		//Transform observations
+		std::vector<LandmarkObs> transformed_obs;
+		for (int j =0; j< observations.size(); j++){
+			double t_x = p_x + cos(p_theta)*observations[j].x - 
+			double t_y
+		}
+	}
 }
 
 void ParticleFilter::resample() {
