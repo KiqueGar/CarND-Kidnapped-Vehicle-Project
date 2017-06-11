@@ -80,22 +80,27 @@ void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::ve
 	//   observed measurement to this particular landmark.
 	// NOTE: this method will NOT be called by the grading code. But you will probably find it useful to 
 	//   implement this method and use it as a helper during the updateWeights phase.
-	for (int i = 0; i<observations.size() i++){
-		//Current observation
+	for (int i = 0; i<observations.size(); i++){
+		//Current observation (absolute coordinates)
 		LandmarkObs obs = observations[i];
 		//Min distance initialized as maximum (~100k)
 		float min_distance = 99999;
 		//Id of best observation (-1 is none)
 		int map_id = -1;
-		//Run through
+		//Run through predictions
 		for (int j=0; j< predicted.size(); j++){
 			LandmarkObs pred = predicted[j];
-			//Current distance
-			double cur_dist = dist()
+			//Current distance current to predicted
+			double cur_dist = dist(obs.x, obs.y, pred.x, pred.y);
+			//Replace id for best estimate landmark
+			if (cur_dist < min_distance){
+				min_distance= cur_dist;
+				map_id= pred.id;
+			}
 		}
+		//Set the best estimete as observation
+		observations[i].id = map_id;
 	}
-	
-
 }
 
 void ParticleFilter::updateWeights(double sensor_range, double std_landmark[], 
@@ -120,9 +125,9 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 		//For each landmark
 		for(int j=0; j< map_landmarks.landmark_list.size(); j++){
 			//get position and ID
-			float l_x = map.landmarks.landmark_list[j].x_f;
-			float l_y = map.landmarks.landmark_list[j].x_f;
-			float l_id = map.landmarks.landmark_list[j].id_i;
+			float l_x = map_landmarks.landmark_list[j].x_f;
+			float l_y = map_landmarks.landmark_list[j].x_f;
+			float l_id = map_landmarks.landmark_list[j].id_i;
 			//Discriminate for only within sensor range
 			if (fabs(l_x-p_x)<=sensor_range && fabs(l_y - p_y)<= sensor_range){
 				//Add to predictions
@@ -131,9 +136,39 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 		}
 		//Transform observations
 		std::vector<LandmarkObs> transformed_obs;
-		for (int j =0; j< observations.size(); j++){
-			double t_x = p_x + cos(p_theta)*observations[j].x - 
-			double t_y
+		for (int j =0; j< observations.size(); j++){ 
+			//T = Rotation*Observation + particle
+			//T = [cos()	sin()]*[Ox] + [px]
+			//		[sin()	cos()] [Oy]	  [py]
+			double t_x = cos(p_theta)*observations[j].x - sin(p_theta)*observations[j].y + p_x;
+			double t_y = sin(p_theta)*observations[j].x + cos(p_theta)*observations[j].y + p_y;
+			transformed_obs.push_back(LandmarkObs{observations[j].id, t_x, t_y});
+		}
+		//Associate observation to landmark
+		dataAssociation(predictions, transformed_obs);
+
+		for (int j = 0; j< transformed_obs.size(); j++){
+			double o_x, o_y, pred_x, pred_y;
+			o_x = transformed_obs[j].x;
+			o_y = transformed_obs[j].y;
+			int associated_pred = transformed_obs[j].id;
+
+			// Get prediction coordinates (A better way for no iterate?)
+			for(int k =0; k<predictions.size(); k++){
+				if(predictions[k].id== associated_pred){
+					pred_x = predictions[k].x;
+					pred_y = predictions[k].y;
+				}
+			}
+
+			//Weight observtion
+			double s_x, s_y;
+			s_x = std_landmark[0];
+			s_y = std_landmark[1];
+			double normalizer;
+			normalizer = 1/(2*M_PI*s_x*s_y);
+			double obs_w =normalizer*exp( -( pow(pred_x-o_x,2)/(2*pow(s_x,2)) + (pow(pred_y - o_y, 2)/(2*pow(s_y,2)))));
+			particles[i].weight= obs_w;
 		}
 	}
 }
@@ -142,6 +177,7 @@ void ParticleFilter::resample() {
 	// TODO: Resample particles with replacement with probability proportional to their weight. 
 	// NOTE: You may find std::discrete_distribution helpful here.
 	//   http://en.cppreference.com/w/cpp/numeric/random/discrete_distribution
+
 
 }
 
