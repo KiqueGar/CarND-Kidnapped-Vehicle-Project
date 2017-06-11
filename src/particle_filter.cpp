@@ -58,7 +58,7 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
 			float VelOverYaw = velocity/ yaw_rate;
 			float arc = yaw_rate*delta_t;
 			particles[i].x += VelOverYaw*(sin(particles[i].theta +arc)-sin(particles[i].theta));
-			particles[i].y += VelOverYaw*(cos(particles[i].theta)+cos(particles[i].theta + arc));
+			particles[i].y += VelOverYaw*(cos(particles[i].theta)-cos(particles[i].theta + arc));
 			particles[i].theta += arc;
 			//NOMRALIZE THETA
 
@@ -178,12 +178,12 @@ void ParticleFilter::resample() {
 	// TODO: Resample particles with replacement with probability proportional to their weight. 
 	// NOTE: You may find std::discrete_distribution helpful here.
 	//   http://en.cppreference.cppom/w/cpp/numeric/random/discrete_distribution
-	vector<float> normal_weights;
+	vector<double> normal_weights;
 	// Create distribution from weights
 	//std::cout << "Actual weights: " << endl;
 	for (int i =0; i<particles.size(); i++){
 		normal_weights.push_back(particles[i].weight);
-		//std::cout << particles[i].weight << endl;
+		//std::cout << "    " << particles[i].weight << endl;
 	}
 	
 	std::discrete_distribution<int> disc_dist(normal_weights.begin(), normal_weights.end());
